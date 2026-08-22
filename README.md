@@ -13,6 +13,7 @@
 <p align="center">
   <a href="#features">Features</a> ·
   <a href="#architecture">Architecture</a> ·
+  <a href="#standalone-scripts">Standalone Scripts</a> ·
   <a href="#quick-start">Quick Start</a> ·
   <a href="#deployment">Deployment</a> ·
   <a href="#project-structure">Structure</a> ·
@@ -83,6 +84,19 @@ flowchart LR
 | **Web Search** | Tavily (lazy-initialized, optional) |
 | **Secrets** | `st.secrets` with `os.getenv()` fallback |
 
+## Standalone Scripts
+
+`app.py` and `create_database.py` are the **original single-file versions** of the pipeline — the stepping stones that grew into the full ChatPDF app. `app.py` runs a basic RAG chain using Groq Llama 3.3 70B with MMR retrieval and a simple prompt, no evaluation or web search fallback. `create_database.py` loads a single PDF, splits it into chunks, and builds the ChromaDB vector store locally.
+
+Use them as a reference for the pipeline logic, or run them standalone:
+
+```bash
+python create_database.py
+python app.py
+```
+
+The full ChatPDF app (`frontend.py` + `backend.py`) is the evolved version — a Corrective RAG pipeline with LangGraph, chunk evaluation, web search fallback, sentence-level filtering, and a polished Streamlit chat UI.
+
 ## Quick Start
 
 ```bash
@@ -136,6 +150,8 @@ CHROMA_DIR = "chroma_db"
 ChatPDF/
 ├── frontend.py              # Streamlit UI (chat, avatars, suggestion chips)
 ├── backend.py               # CRAG pipeline (LangGraph, 6 nodes, dual LLM chains)
+├── app.py                   # Original standalone RAG chain (reference)
+├── create_database.py       # Original ChromaDB builder (reference)
 ├── requirements.txt         # Python dependencies
 ├── CONTRIBUTING.md          # Contribution guide
 ├── .env.example             # Required API keys template
