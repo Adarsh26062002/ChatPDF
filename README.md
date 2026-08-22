@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://chatpdf-crag.streamlit.app/" target="_blank">
-    <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&height=200&section=header&text=ChatPDF&fontSize=50&fontAlignY=35&desc=Corrective%20RAG%20pipeline%20with%20web%20search%20fallback&descAlignY=55" />
+    <img src="assets/banner.png" alt="ChatPDF Banner" />
   </a>
 </p>
 
