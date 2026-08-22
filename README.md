@@ -1,11 +1,11 @@
 <p align="center">
-  <a href="https://pdf-rag-chat-awpbgzgzfmaauuewjkgara.streamlit.app/" target="_blank">
+  <a href="https://chatpdf-crag.streamlit.app/" target="_blank">
     <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&height=200&section=header&text=ChatPDF&fontSize=50&fontAlignY=35&desc=Corrective%20RAG%20pipeline%20with%20web%20search%20fallback&descAlignY=55" />
   </a>
 </p>
 
 <p align="center">
-  <a href="https://pdf-rag-chat-awpbgzgzfmaauuewjkgara.streamlit.app/" target="_blank">
+  <a href="https://chatpdf-crag.streamlit.app/" target="_blank">
     <img src="https://img.shields.io/badge/Live_Demo-Streamlit-FF4B4B?logo=streamlit&logoColor=white" alt="Live Demo"/>
   </a>
 </p>
