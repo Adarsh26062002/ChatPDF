@@ -4,3 +4,13 @@ __pycache__/
 chroma_db/
 chroma-db/
 vector store/
+main.py
+main2.py
+document loader/
+rag/
+retrievers/
+create_database.py
+CRAG.py
+.agents/
+skills-lock.json
+.streamlit/secrets.toml

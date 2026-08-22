@@ -1,5 +1,7 @@
 <p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&height=200&section=header&text=PDF%20RAG%20Chat&fontSize=50&fontAlignY=35&desc=Chat%20with%20your%20PDFs%20using%20RAG%20%2B%20Chroma%20Vector%20Search&descAlignY=55" />
+  <a href="https://pdf-rag-chat-awpbgzgzfmaauuewjkgara.streamlit.app/" target="_blank">
+    <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&height=200&section=header&text=ChatPDF&fontSize=50&fontAlignY=35&desc=Corrective%20RAG%20pipeline%20with%20web%20search%20fallback&descAlignY=55" />
+  </a>
 </p>
 
 <p align="center">
@@ -12,113 +14,137 @@
   <a href="#features">Features</a> ·
   <a href="#architecture">Architecture</a> ·
   <a href="#quick-start">Quick Start</a> ·
-  <a href="#usage">Usage</a> ·
+  <a href="#deployment">Deployment</a> ·
   <a href="#project-structure">Structure</a> ·
-  <a href="#comparison">Comparison</a>
+  <a href="#contributing">Contributing</a>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.11-blue?logo=python&logoColor=white" alt="Python 3.11"/>
-  <img src="https://img.shields.io/badge/LangChain-RAG-important?logo=langchain" alt="LangChain"/>
+  <img src="https://img.shields.io/badge/LangGraph-CRAG-important?logo=langchain" alt="LangGraph"/>
   <img src="https://img.shields.io/badge/ChromaDB-Vector-green" alt="ChromaDB"/>
   <img src="https://img.shields.io/badge/HuggingFace-all--MiniLM--L6--v2-orange?logo=huggingface" alt="all-MiniLM-L6-v2"/>
-  <img src="https://img.shields.io/badge/Groq-llama--3.3--70b-orange" alt="Groq"/>
+  <img src="https://img.shields.io/badge/Mistral-Generation-blue" alt="Mistral"/>
+  <img src="https://img.shields.io/badge/Groq-Fallback-orange" alt="Groq"/>
+  <img src="https://img.shields.io/badge/Gemini-Scoring-yellow" alt="Gemini"/>
+  <img src="https://img.shields.io/badge/Tavily-Web_Search-teal" alt="Tavily"/>
   <img src="https://img.shields.io/badge/Streamlit-UI-red?logo=streamlit&logoColor=white" alt="Streamlit"/>
-  <img src="https://img.shields.io/badge/MMR-Retrieval-blueviolet" alt="MMR"/>
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"/>
 </p>
 
 ---
 
-Upload PDFs and ask questions using RAG with Chroma vector search and Groq LLM.
+Upload PDFs and ask questions using a **Corrective RAG (CRAG)** pipeline that evaluates retrieval quality, routes between document and web sources, and synthesizes grounded answers.
 
 ## Features
 
+- **Corrective RAG Pipeline** — 6-node LangGraph graph that evaluates each retrieved chunk, then routes between document refinement or web search based on relevance scores
+- **Multi-Source Routing** — CORRECT (score >= 0.7) refines document chunks, INCORRECT (< 0.3) and AMBIGUOUS (mixed) fall back to Tavily web search
 - **Multi-PDF Ingestion** — Upload one or more PDFs, search across all at once
-- **RAG Pipeline** — Retrieve relevant chunks, generate grounded answers
-- **MMR Retrieval** — Maximum Marginal Relevance for diverse, relevant context
-- **Groq Llama 3.3 70B** — Fast, high-quality inference
-- **ChromaDB** — Lightweight, local vector store (no external infra needed)
+- **Sentence-Level Filtering** — Refines retrieved chunks into sentences, then keeps only relevant ones before generation
+- **Dual LLM Fallback Chains** — Generation: Mistral -> Groq; Scoring: Gemini with optional Mistral backup for rate limits
+- **Persistent Vector Store** — ChromaDB with HuggingFace embeddings (all-MiniLM-L6-v2)
+- **Streamlit Chat UI** — Clean chat interface with avatars, suggestion chips, and custom styling
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-  PDF["📄 PDF Upload(s)"] --> Loader["PyPDFLoader"]
-  Loader --> Splitter["RecursiveCharacterTextSplitter<br/>(chunk=1000, overlap=200)"]
-  Splitter --> Embed["HuggingFace Embeddings<br/>(all-MiniLM-L6-v2)"]
-  Embed --> Vector[("ChromaDB Vector Store")]
-  
-  Query["🙋 User Question"] --> Retriever["MMR Retriever<br/>(k=5, fetch_k=15, λ=0.5)"]
-  Vector --> Retriever
-  Retriever --> Context["Retrieved Chunks"]
-  
-  Context --> Prompt["Prompt Template<br/>(System + Context + Question)"]
-  Prompt --> LLM["Groq Llama 3.3 70B"]
-  LLM --> Answer["💬 Answer"]
-  
-  Answer --> UI["Streamlit UI"]
-  Query --> UI
+    PDF["PDF Upload(s)"] --> Loader["PyPDFLoader"]
+    Loader --> Splitter["RecursiveCharacterTextSplitter<br/>(chunk=900, overlap=150)"]
+    Splitter --> Embed["HuggingFace Embeddings<br/>(all-MiniLM-L6-v2)"]
+    Embed --> Vector[("ChromaDB<br/>Vector Store")]
+
+    Query["User Question"] --> Retrieve["Retrieve<br/>(k=5)"]
+    Vector --> Retrieve
+    Retrieve --> Eval["Evaluate Each Doc<br/>(scorer LLM)"]
+
+    Eval -->|"score >= 0.7<br/>CORRECT"| Refine["Refine<br/>(filter sentences)"]
+    Eval -->|"score < 0.3<br/>INCORRECT"| Rewrite["Rewrite Query"]
+    Eval -->|"mixed<br/>AMBIGUOUS"| Rewrite
+
+    Rewrite --> WebSearch["Web Search<br/>(Tavily)"]
+    WebSearch --> Generate["Generate Answer<br/>(LLM)"]
+    Refine --> Generate
+
+    Generate --> Answer["Answer"]
+    Query --> Answer
 ```
 
 | Component | Stack |
 |---|---|
-| **Frontend** | Streamlit (chat interface) |
-| **Document Loading** | PyPDFLoader + RecursiveCharacterTextSplitter |
+| **Frontend** | Streamlit (chat UI, avatars, suggestion chips) |
+| **Orchestration** | LangGraph StateGraph (6 nodes, conditional edges) |
+| **Document Loading** | PyPDFLoader + RecursiveCharacterTextSplitter (900 chars, 150 overlap) |
 | **Embeddings** | HuggingFace `all-MiniLM-L6-v2` |
-| **Vector Store** | ChromaDB (local, in-memory per session) |
-| **Retrieval** | MMR (k=5, fetch_k=15, lambda_mult=0.5) |
-| **LLM** | Groq `llama-3.3-70b-versatile` |
-| **Orchestration** | LangChain |
+| **Vector Store** | ChromaDB (persistent local storage, similarity search k=5) |
+| **Generation LLM** | Mistral `mistral-small-latest` -> Groq `gpt-oss-120b` fallback |
+| **Scorer LLM** | Gemini `gemini-flash-lite-latest` (optional Mistral backup via second API key to avoid rate limits) |
+| **Web Search** | Tavily (lazy-initialized, optional) |
+| **Secrets** | `st.secrets` with `os.getenv()` fallback |
 
 ## Quick Start
 
 ```bash
-git clone https://github.com/kairav7220/pdf-rag-chat.git
-cd pdf-rag-chat
+git clone https://github.com/kairav7220/ChatPDF.git
+cd ChatPDF
 pip install -r requirements.txt
 ```
 
-Set your API key in `.env`:
+Set your API keys in `.env`:
 
 ```env
-GROQ_API_KEY="gsk_..."
+MISTRAL_API_KEY="your-mistral-key"
+MISTRAL_API_KEY_2="your-second-mistral-key"
+GROQ_API_KEY="your-groq-key"
+GOOGLE_API_KEY="your-google-gemini-key"
+HUGGINGFACE_API_TOKEN="your-hf-token"
+TAVILY_API_KEY="your-tavily-key"
 ```
 
 ```bash
-streamlit run app.py
+streamlit run frontend.py
 ```
 
-## Usage
+## How It Works
 
-1. Upload PDFs in the sidebar (multiple supported)
-2. Wait for indexing to complete
-3. Ask questions in the chat input
-4. LLM responds using only the retrieved context — says "I don't know" if missing
+1. **Upload** — Add PDFs via the sidebar and click "Index documents". PDFs are split into chunks (900 chars, 150 overlap) and embedded into ChromaDB.
+2. **Retrieve** — System fetches the 5 most similar chunks from ChromaDB using cosine similarity.
+3. **Evaluate** — Each retrieved chunk is scored for relevance (0.0-1.0) by the scorer LLM. Chunks scoring >= 0.7 are marked as good.
+4. **Route** — Based on scores:
+   - **CORRECT** (at least one chunk >= 0.7): Filter good chunks through sentence-level relevance check, then generate answer from refined context.
+   - **INCORRECT** (all chunks < 0.3): Rewrite the question into a web search query, search via Tavily, generate answer from web results.
+   - **AMBIGUOUS** (mixed scores, none >= 0.7 but not all < 0.3): Same path as INCORRECT — rewrite and search the web.
 
-## Comparison
+## Deployment
 
-| Feature | This Project | LangChain RAG Script | LlamaIndex |
-|---|---|---|---|
-| UI | ✅ Streamlit | ❌ CLI only | ❌ CLI only |
-| Multiple PDFs | ✅ Single upload | ❌ One at a time | ✅ |
-| MMR Retrieval | ✅ Built-in | ❌ Manual | ✅ |
-| Vector Store | ChromaDB | Any | Any |
+On Streamlit Community Cloud, add your keys in **Settings > Secrets**:
 
+```toml
+MISTRAL_API_KEY = "your-mistral-key"
+MISTRAL_API_KEY_2 = "your-second-mistral-key"
+GROQ_API_KEY = "your-groq-key"
+GOOGLE_API_KEY = "your-google-gemini-key"
+HUGGINGFACE_API_TOKEN = "your-hf-token"
+TAVILY_API_KEY = "your-tavily-key"
+CHROMA_DIR = "chroma_db"
+```
 
 ## Project Structure
 
 ```
-pdf-rag-chat/
-├── app.py              # Streamlit app (ingestion + chat)
-├── requirements.txt    # Python dependencies
-├── CONTRIBUTING.md     # Contribution guide
-├── llms.txt            # AI assistant context
+ChatPDF/
+├── frontend.py              # Streamlit UI (chat, avatars, suggestion chips)
+├── backend.py               # CRAG pipeline (LangGraph, 6 nodes, dual LLM chains)
+├── requirements.txt         # Python dependencies
+├── CONTRIBUTING.md          # Contribution guide
+├── .env.example             # Required API keys template
 ├── .gitignore
-└── LICENSE
+├── .streamlit/
+│   ├── config.toml          # App theme
+│   └── secrets.toml         # Your API keys (gitignored)
+└── chroma_db/               # Persistent vector store (gitignored)
 ```
-
-Single-file app — everything in `app.py` (under 120 lines).
 
 ## License
 
@@ -128,7 +154,11 @@ MIT © [kairav7220](https://github.com/kairav7220)
 
 <p align="center">
   Built with <a href="https://python.langchain.com">LangChain</a> ·
+  <a href="https://langchain-ai.github.io/langgraph/">LangGraph</a> ·
   <a href="https://www.trychroma.com">ChromaDB</a> ·
+  <a href="https://mistral.ai">Mistral</a> ·
   <a href="https://groq.com">Groq</a> ·
+  <a href="https://ai.google.dev/gemini-api">Gemini</a> ·
+  <a href="https://tavily.com">Tavily</a> ·
   <a href="https://huggingface.co/sentence-transformers">Sentence Transformers</a>
 </p>
