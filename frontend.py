@@ -1,4 +1,5 @@
 import streamlit as st
+import backend
 from backend import load_llm, process_pdfs, get_retriever, query_rag_auto
 import os
 
@@ -58,6 +59,7 @@ with st.sidebar:
             with st.spinner('Reading and indexing...'):
                 retriever, chunk_count = process_pdfs(uploaded_files, embeddings)
                 if retriever:
+                    backend.retriever = retriever
                     st.session_state.retriever_ready = True
                     st.toast(f'Indexed {chunk_count} chunks', icon=':material/check_circle:')
                 else:
