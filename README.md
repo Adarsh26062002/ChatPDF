@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://chatpdf-crag.streamlit.app/" target="_blank">
-    <img src="assets/banner.png" alt="ChatPDF Banner" width="550" />
+    <img src="assets/banner.png" alt="ChatPDF Banner" width="900" />
   </a>
 </p>
 
