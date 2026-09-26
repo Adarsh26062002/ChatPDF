@@ -30,11 +30,11 @@ def _get(key: str, default=None):
 CHROMA_DIR = _get('CHROMA_DIR', 'chroma_db')
     
 def load_llm():
-    primary = ChatMistralAI(model='mistral-small-latest', temperature=0.0)
+    primary = ChatMistralAI(model='ministral-8b-2512', temperature=0.0)
     fallback = ChatGroq(model='openai/gpt-oss-120b', temperature=0.0)
     embeddings = HuggingFaceEmbeddings(model_name='all-MiniLM-L6-v2')
     secondary_llm = ChatGoogleGenerativeAI(model='gemini-flash-lite-latest', temperature=0.0)
-    tertiary_llm = ChatMistralAI(model='mistral-small-latest', temperature=0.0, api_key=_get('MISTRAL_API_KEY_2'))
+    tertiary_llm = ChatMistralAI(model='ministral-8b-2512', temperature=0.0, api_key=_get('MISTRAL_API_KEY_2'))
     llm = primary.with_fallbacks([fallback])
     scorer_llm = tertiary_llm.with_fallbacks([secondary_llm])
     return embeddings, llm, scorer_llm
